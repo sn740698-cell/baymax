@@ -15,7 +15,7 @@ with st.sidebar:
     **Suraj and Team**
     
     We are dedicated to building helpful AI-powered chat assistants to make your life better.
-    📧 sn740698@gmail.com
+    📧 sn740698@gmail.com suraj ( 9206881748 )
     """)
     st.markdown("---")
     st.markdown("""
@@ -535,3 +535,4 @@ st.markdown("""
         Powered by Streamlit • Baymax Assistant v2.0
     </div>
 """, unsafe_allow_html=True)
+
