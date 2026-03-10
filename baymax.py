@@ -8,7 +8,7 @@ import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 # Gemini API configuration
-GEMINI_API_KEY = "YOUR_API_KEY"
+GEMINI_API_KEY = "AIzaSyBhBl-GjVq9ulWZ_aHLOevWNmxYjxwFrHs"
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-2.5-pro-exp-03-25')
 
@@ -277,3 +277,4 @@ Baymax Assistant • Streamlit
 """,
 unsafe_allow_html=True
 )
+
