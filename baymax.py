@@ -63,7 +63,7 @@ def display_health_logs():
 def get_bot_response(user_text, mode):
     # Set the AI's personality based on the selected mode
     system_instruction = ""
-    if mode == "Wikipedia":
+    if mode == "Search":
         system_instruction = "You are Baymax, a highly knowledgeable encyclopedia assistant. Provide accurate, detailed, and factual summaries similar to Wikipedia articles."
     elif mode == "Health":
         system_instruction = "You are Baymax, a personal healthcare companion. Provide helpful, empathetic health information. Always remind the user to consult a real doctor for serious issues."
@@ -106,9 +106,9 @@ def update_message(pos, new_msg, mode):
 mode = st.radio("Select Mode", options=["Wikipedia", "Health", "Mathematics", "Code"], index=0, horizontal=True)
 
 # Header and intro for each mode
-if mode == "Wikipedia":
+if mode == "Searching":
     st.title("🤖 Baymax: I am your info assistant")
-    st.markdown("### Hello! I'm Baymax (Wiki Mode). What do you want to know about?")
+    st.markdown("### Hello! I'm Baymax (search Mode). What do you want to know about?")
 elif mode == "Health":
     st.title("🤖 Baymax: I am your Healthcare companion")
     st.markdown("### Hello! I'm Baymax. How are you feeling today?")
@@ -201,4 +201,5 @@ st.markdown("""
         Powered by Google Gemini AI & Streamlit • Baymax Assistant v3.0
     </div>
 """, unsafe_allow_html=True)
+
 
