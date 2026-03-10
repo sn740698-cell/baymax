@@ -218,3 +218,4 @@ st.markdown("""
         Powered by Google Gemini AI & Streamlit • Baymax Assistant v3.0
     </div>
 """, unsafe_allow_html=True)
+
