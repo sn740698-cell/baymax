@@ -12,7 +12,7 @@ st.set_page_config(page_title="🤖 Baymax Assistant", layout="centered")
 with st.sidebar:
     st.markdown("### About Us")
     st.markdown("""
-    **Suraj and Team**
+    **Suraj**
     
     We are dedicated to building helpful AI-powered chat assistants to make your life better.
     📧 sn740698@gmail.com suraj ( 9206881748 )
@@ -535,4 +535,5 @@ st.markdown("""
         Powered by Streamlit • Baymax Assistant v2.0
     </div>
 """, unsafe_allow_html=True)
+
 
