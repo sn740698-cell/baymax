@@ -5,7 +5,7 @@ from google.genai import types
 
 # 1. FIX: Initialize Gemini Client with named argument 'api_key'
 # Replace the string below with your actual API key
-client = genai.Client(api_key="AIzaSyDEHCrbpbH6CLYrmK3B9x3xDn4SDmPaHkE")
+client = genai.Client(api_key="AIzaSyDGVB16gbZ0K6TwxmhbwARQafU_p40dSzs")
 
 # Page config
 st.set_page_config(page_title="🤖 Baymax Assistant", layout="centered")
@@ -118,4 +118,5 @@ with col2:
 if st.button("Clear Chat"):
     st.session_state.chat_history = []
     st.rerun()
+
 
