@@ -5,7 +5,7 @@ from google.genai import types
 
 # Initialize Gemini Client
 # Note: Ensure your API key is kept secure!
-client = genai.Client(api_key="AIzaSyDGVB16gbZ0K6TwxmhbwARQafU_p40dSzs")
+client = genai.Client(api_key="AIzaSyDEHCrbpbH6CLYrmK3B9x3xDn4SDmPaHkE")
 
 # Page config
 st.set_page_config(page_title="🤖 Baymax Assistant", layout="centered")
@@ -218,5 +218,6 @@ st.markdown("""
         Powered by Google Gemini AI & Streamlit • Baymax Assistant v3.0
     </div>
 """, unsafe_allow_html=True)
+
 
 
