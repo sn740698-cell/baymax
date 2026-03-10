@@ -118,3 +118,4 @@ with col2:
 if st.button("Clear Chat"):
     st.session_state.chat_history = []
     st.rerun()
+
