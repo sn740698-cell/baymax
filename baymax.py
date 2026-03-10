@@ -3,8 +3,8 @@ import datetime
 from google import genai
 from google.genai import types
 
-# Initialize Gemini Client using the API Key from your screenshot
-# Make sure to run: pip install google-genai
+# Initialize Gemini Client
+# Note: Ensure your API key is kept secure!
 client = genai.Client(api_key="AIzaSyDEHCrbpbH6CLYrmK3B9x3xDn4SDmPaHkE")
 
 # Page config
@@ -23,7 +23,7 @@ with st.sidebar:
     st.markdown("""
     ### User Guidance
     
-    - **Wikipedia:** Ask about any topic, person, or history.
+    - **Searching Mode:** Explore the world's knowledge with factual summaries.
     - **Health:** Ask about medical symptoms like "fever" or "trouble sleeping".
     - **Mathematics:** Solve complex math expressions or word problems.
     - **Code:** Generate, debug, or explain programming code.
@@ -63,19 +63,18 @@ def display_health_logs():
 def get_bot_response(user_text, mode):
     # Set the AI's personality based on the selected mode
     system_instruction = ""
-    if mode == "Search":
+    if mode == "Searching Mode":
         system_instruction = "You are Baymax, a highly knowledgeable encyclopedia assistant. Provide accurate, detailed, and factual summaries similar to Wikipedia articles."
     elif mode == "Health":
         system_instruction = "You are Baymax, a personal healthcare companion. Provide helpful, empathetic health information. Always remind the user to consult a real doctor for serious issues."
     elif mode == "Mathematics":
         system_instruction = "You are Baymax, a math assistant. Evaluate mathematical expressions and solve problems step-by-step."
     elif mode == "Code":
-        system_instruction = "You are Baymax, an expert programmer. You are 'ready to write the code'. Provide clean, efficient code snippets, explain how they work, and help debug if asked."
+        system_instruction = "You are Baymax, an expert programmer. Provide clean, efficient code snippets, explain how they work, and help debug if asked."
 
     try:
-        # Call the Gemini 2.5 Flash model
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.0-flash', # Updated to 2.0 Flash as per standard capabilities
             contents=user_text,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -103,21 +102,41 @@ def update_message(pos, new_msg, mode):
         st.session_state.chat_history.insert(bot_pos, {"role": "bot", "msg": bot_resp})
 
 # Mode selection UI
-mode = st.radio("Select Mode", options=["Wikipedia", "Health", "Mathematics", "Code"], index=0, horizontal=True)
+mode = st.radio("Select Mode", options=["Searching Mode", "Health", "Mathematics", "Code"], index=0, horizontal=True)
 
 # Header and intro for each mode
-if mode == "Searching":
-    st.title("🤖 Baymax: I am your info assistant")
-    st.markdown("### Hello! I'm Baymax (search Mode). What do you want to know about?")
+if mode == "Searching Mode":
+    st.title("🌐 Baymax: Searching Mode")
+    st.subheader("Your Gateway to Global Knowledge")
+    
+    # Sliding-style image gallery
+    cols = st.columns(4)
+    images = [
+        "https://images.unsplash.com/photo-1507413245164-6160d8298b31?w=400", # Science
+        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400", # Tech
+        "https://images.unsplash.com/photo-1447069387593-a5de0862481e?w=400", # History
+        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400"  # Info
+    ]
+    captions = ["Science", "Space", "History", "Digital"]
+    for i, col in enumerate(cols):
+        col.image(images[i], caption=captions[i], use_container_width=True)
+    
+    st.markdown("### Hello! I'm Baymax. What would you like to discover today?")
+
 elif mode == "Health":
-    st.title("🤖 Baymax: I am your Healthcare companion")
+    st.title("🏥 Baymax: Healthcare Companion")
+    st.subheader("Personalized care for a healthier you")
     st.markdown("### Hello! I'm Baymax. How are you feeling today?")
+
 elif mode == "Mathematics":
-    st.title("🤖 Baymax: I am your Mathematics Assistant")
-    st.markdown("### Hello! I'm Baymax (Math Mode). Enter a mathematical problem:")
+    st.title("🔢 Baymax: Mathematics Assistant")
+    st.subheader("Solving the world, one equation at a time")
+    st.markdown("### Hello! I'm Baymax. Enter a mathematical problem:")
+
 elif mode == "Code":
-    st.title("🤖 Baymax: I am your Code Assistant")
-    st.markdown("### Hello! I'm Baymax, and I am **ready to write the code**. What are we building today?")
+    st.title("💻 Baymax: Code Assistant")
+    st.subheader("Ready to write the code")
+    st.markdown("### Hello! I'm Baymax. What are we building today?")
 
 # Input form for user queries
 with st.form("input_form", clear_on_submit=True):
@@ -149,8 +168,6 @@ if st.button("Clear Chat"):
 # Display chat history
 for idx, message in reversed(list(enumerate(st.session_state.chat_history))):
     raw_msg = message["msg"]
-    
-    # Escape quotes for HTML copy button
     msg_text = raw_msg.replace('"', '&quot;').replace('\n', '\\n') if isinstance(raw_msg, str) else str(raw_msg)
     
     if message["role"] == "user":
@@ -192,7 +209,7 @@ if mode == "Health":
                 st.success(f"Logged symptom: {symptom_input}")
         st.text(display_health_logs())
 
-# Hide default Streamlit footer and add custom footer
+# Footer
 st.markdown("""
     <style>
     footer {visibility: hidden;}
@@ -201,5 +218,3 @@ st.markdown("""
         Powered by Google Gemini AI & Streamlit • Baymax Assistant v3.0
     </div>
 """, unsafe_allow_html=True)
-
-
