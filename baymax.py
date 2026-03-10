@@ -5,7 +5,7 @@ from google.genai import types
 
 # Initialize Gemini Client using the API Key from your screenshot
 # Make sure to run: pip install google-genai
-client = genai.Client(api_key="AIzaSyBhBl-GjVq9ulWZ_aHLOevWNmxyjxwFrHs")
+client = genai.Client(api_key="AIzaSyDEHCrbpbH6CLYrmK3B9x3xDn4SDmPaHkE")
 
 # Page config
 st.set_page_config(page_title="🤖 Baymax Assistant", layout="centered")
@@ -201,3 +201,4 @@ st.markdown("""
         Powered by Google Gemini AI & Streamlit • Baymax Assistant v3.0
     </div>
 """, unsafe_allow_html=True)
+
