@@ -4,6 +4,13 @@ import wikipedia
 import re
 import datetime
 from collections import defaultdict
+import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
+
+# Gemini API configuration - 2.5 Pro version
+GEMINI_API_KEY = "AIzaSyBhBl-GjVq9ulWZ_aHLOevWNmxYjxwFrHs"
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel('gemini-2.5-pro-exp-03-25')
 
 # Page config
 st.set_page_config(page_title="🤖 Baymax Assistant", layout="centered")
@@ -15,7 +22,7 @@ with st.sidebar:
     **Suraj**
     
     We are dedicated to building helpful AI-powered chat assistants to make your life better.
-    📧 sn740698@gmail.com suraj ( 9206881748 )
+    📧 [sn740698@gmail.com](mailto:sn740698@gmail.com) suraj ( 9206881748 )
     """)
     st.markdown("---")
     st.markdown("""
@@ -37,7 +44,7 @@ def load_responses():
             "conversational_responses.csv",
             on_bad_lines='skip',
             quotechar='"',
-            escapechar='\\',
+            escapechar='\\\\',
             encoding='utf-8'
         )
     except Exception as e:
@@ -142,7 +149,7 @@ if "related_topics" not in st.session_state:
 
 # Math expression check
 def is_math_expression(text):
-    return re.match(r'^[\d\s\.\+\-\*\/\^\(\)]+$', text.strip()) is not None
+    return re.match(r'^[\\d\\s\\.\\+\\-\\*\\/\\^\\(\\)]+$', text.strip()) is not None
 
 # Math parser class
 class Parser:
@@ -264,6 +271,42 @@ def evaluate_math_expression(expr):
     except Exception as e:
         return f"Error evaluating expression: {str(e)}"
 
+# Gemini AI response generation
+def get_gemini_response(prompt, mode):
+    try:
+        safety_settings = {
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        }
+        
+        system_prompt = f"""
+        You are Baymax, a helpful healthcare companion AI assistant. Current mode: {mode}.
+        
+        Guidelines:
+        - For Health mode: Provide general medical advice only, always recommend professional consultation
+        - For Wikipedia mode: Be informative and factual
+        - For Mathematics mode: Solve math problems accurately
+        - Be empathetic, supportive, and safety-conscious
+        - Keep responses concise and helpful
+        
+        User query: {prompt}
+        """
+        
+        response = model.generate_content(
+            system_prompt,
+            safety_settings=safety_settings,
+            generation_config={
+                "temperature": 0.7,
+                "top_p": 0.8,
+                "max_output_tokens": 1000,
+            }
+        )
+        return response.text
+    except Exception as e:
+        return f"Sorry, I'm having trouble connecting to my AI brain right now. Error: {str(e)}"
+
 # Sentiment detection
 def detect_sentiment(user_text):
     positive_words = ['happy', 'good', 'great', 'fantastic', 'awesome', 'love', 'nice', 'well', 'excellent']
@@ -331,9 +374,11 @@ def get_wikipedia_info(topic):
     except Exception:
         return "Sorry, I don't know how to respond to that yet. 🤔", None, None
 
-# Generate response
+# Generate response - Enhanced with Gemini AI
 def get_bot_response(user_text, mode):
     user_lower = user_text.strip().lower()
+    
+    # Priority checks for specific modes
     if mode == "Wikipedia":
         return get_wikipedia_info(user_text)
     if mode == "Health" and user_lower in medical_symptoms:
@@ -353,7 +398,9 @@ def get_bot_response(user_text, mode):
     if empathy_resp:
         return empathy_resp, None, None
 
-    return get_wikipedia_info(user_text)
+    # Use Gemini AI for all other queries
+    gemini_response = get_gemini_response(user_text, mode)
+    return gemini_response, None, None
 
 # Chat message handling
 def add_message(user_msg, mode):
@@ -474,7 +521,7 @@ for idx, message in reversed(list(enumerate(st.session_state.chat_history))):
             if st.button("✏️ Edit", key=f"edit_{idx}"):
                 st.session_state.edit_index = idx
         with cols[2]:
-            st.markdown(f'<button onclick="navigator.clipboard.writeText(\'{msg_text}\')">📋 Copy</button>', unsafe_allow_html=True)
+            st.markdown(f'<button onclick="navigator.clipboard.writeText(\\'{msg_text}\\')">📋 Copy</button>', unsafe_allow_html=True)
     else:
         cols = st.columns([0.85, 0.15])
         with cols[0]:
@@ -488,13 +535,13 @@ for idx, message in reversed(list(enumerate(st.session_state.chat_history))):
                 read_more = st.session_state.read_more_states[idx]
 
                 if read_more:
-                    st.markdown(f"**Baymax:** {full_msg}  \n\n[Read more on Wikipedia]({wiki_url})", unsafe_allow_html=True)
+                    st.markdown(f"**Baymax:** {full_msg}  \n\n[Read more on Wikipedia]({wiki_url})", unsafe_allow_html=True)
                     if st.button("Show less", key=f"toggle_{idx}"):
                         st.session_state.read_more_states[idx] = False
                         st.rerun()
                 else:
                     short_summary = '. '.join(full_msg.split('. ')[:3]) + '.'
-                    st.markdown(f"**Baymax:** {short_summary}...  \n\n[Read more on Wikipedia]({wiki_url})", unsafe_allow_html=True)
+                    st.markdown(f"**Baymax:** {short_summary}...  \n\n[Read more on Wikipedia]({wiki_url})", unsafe_allow_html=True)
                     if st.button("Read more...", key=f"toggle_{idx}"):
                         st.session_state.read_more_states[idx] = True
                         st.rerun()
@@ -504,7 +551,7 @@ for idx, message in reversed(list(enumerate(st.session_state.chat_history))):
             if message.get("image"):
                 st.image(message["image"], width=300)
         with cols[1]:
-            st.markdown(f'<button onclick="navigator.clipboard.writeText(\'{msg_text}\')">📋 Copy</button>', unsafe_allow_html=True)
+            st.markdown(f'<button onclick="navigator.clipboard.writeText(\\'{msg_text}\\')">📋 Copy</button>', unsafe_allow_html=True)
 
 # To-Do List expander
 with st.expander("📝 To-Do List"):
@@ -532,8 +579,6 @@ st.markdown("""
     footer {visibility: hidden;}
     </style>
     <div style="margin-top: 50px; text-align: center; color: gray;">
-        Powered by Streamlit • Baymax Assistant v2.0
+        Powered by Streamlit • Baymax Assistant v2.0 • Gemini 2.5 Pro
     </div>
 """, unsafe_allow_html=True)
-
-
