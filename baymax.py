@@ -4,7 +4,7 @@ from google import genai
 from google.genai import types
 
 # Initialize Gemini Client 
-client = genai.Client(api_key="AIzaSyDZifFyqyaweK8liNxT77VjX5r8-Zg2a7M")
+client = genai.Client(api_key="AIzaSyDIzo83zqbrBBUpo5HbGEWiyqfPfKWarY8")
 
 # Page config
 st.set_page_config(page_title="🤖 Baymax Assistant", layout="centered")
@@ -115,4 +115,5 @@ if st.button("I am satisfied with my care."):
     st.success("I cannot deactivate until you say... oh wait, you just did! Goodbye!")
     st.session_state.chat_history = []
     st.rerun()
+
 
