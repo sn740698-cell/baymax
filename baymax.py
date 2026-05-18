@@ -2,7 +2,6 @@ import streamlit as st
 import datetime
 import time
 import random
-import psutil
 from openai import OpenAI as DeepSeekClient
 
 # Initialize DeepSeek Client (via Pollinations API base URL)
@@ -196,24 +195,7 @@ with st.sidebar:
     st.markdown("### System Status")
     cols = st.columns(2)
     
-    try:
-        battery = psutil.sensors_battery()
-        if battery:
-            batt_percent = int(battery.percent)
-            batt_plugged = battery.power_plugged
-            batt_str = f"{batt_percent}%" + (" ⚡" if batt_plugged else "")
-            batt_delta = "Charging" if batt_plugged else "Discharging"
-            delta_col = "normal" if batt_plugged else "off"
-        else:
-            batt_str = "Unknown"
-            batt_delta = "N/A"
-            delta_col = "off"
-    except Exception:
-        batt_str = "Error"
-        batt_delta = "N/A"
-        delta_col = "off"
-
-    cols[0].metric(label="Battery", value=batt_str, delta=batt_delta, delta_color=delta_col)
+    cols[0].metric(label="System Core", value="Online", delta="Stable", delta_color="normal")
     cols[1].metric(label="Empathy Chip", value="Active", delta="Optimal", delta_color="normal")
     st.progress(100, text="Database Connection")
     st.markdown("---")
@@ -247,39 +229,44 @@ def get_bot_response(user_text, mode):
 
     models_to_try = [
         "openai",
+        "mistral",
+        "llama",
         "gemini"
     ]
     last_error = ""
     for fallback_model in models_to_try:
-        try:
-            response = client.chat.completions.create(
-                model=fallback_model,
-                messages=[
-                    {"role": "system", "content": instructions.get(mode, "")},
-                    {"role": "user", "content": user_text}
-                ],
-                temperature=0.7,
-                stream=True
-            )
-            got_content = False
-            for chunk in response:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    got_content = True
-                    yield chunk.choices[0].delta.content
-            
-            if got_content:
-                return # Successfully streamed the response
-            else:
-                last_error = f"Model {fallback_model} returned an empty response."
-                continue # Skip to the next model if this one gave us a blank text block!
-        except Exception as e:
-            last_error = str(e)
-            if "429" in last_error or "Queue full" in last_error:
-                time.sleep(2.5) # The free API queue is full, give it a moment to clear before next retry!
-            continue # Model is busy, dead, or missing. Try the next one!
+        for attempt in range(3):
+            try:
+                response = client.chat.completions.create(
+                    model=fallback_model,
+                    messages=[
+                        {"role": "system", "content": instructions.get(mode, "")},
+                        {"role": "user", "content": user_text}
+                    ],
+                    temperature=0.7,
+                    stream=True
+                )
+                got_content = False
+                for chunk in response:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        got_content = True
+                        yield chunk.choices[0].delta.content
+                
+                if got_content:
+                    return # Successfully streamed the response
+                else:
+                    last_error = f"Model {fallback_model} returned an empty response."
+                    break # Break retry loop, try next model
+            except Exception as e:
+                last_error = str(e)
+                if "429" in last_error or "Queue full" in last_error or "busy" in last_error.lower() or "503" in last_error:
+                    time.sleep(2.5) # The free API queue is full, give it a moment to clear before next retry!
+                    continue
+                else:
+                    break # Break attempt loop for this model on other errors
             
     # If we get here, all models failed. Let's make the error look clean instead of dumping JSON!
-    if "429" in last_error or "Queue full" in last_error:
+    if "429" in last_error or "Queue full" in last_error or "busy" in last_error.lower() or "503" in last_error:
         yield "My servers are currently experiencing extreme traffic! 🚦 Please wait a few moments and ask me again. I appreciate your patience!"
     else:
         yield f"All of my free AI data-cores are currently overwhelmed or offline. Please try asking again in a few minutes! (Last internal error: {last_error[:100]}...)"
