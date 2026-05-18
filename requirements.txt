@@ -1,2 +1,3 @@
 streamlit
 openai  # Used to connect to the deepseek API via OpenRouter
+psutil
