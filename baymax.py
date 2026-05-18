@@ -1,15 +1,16 @@
 import streamlit as st
 import datetime
 import time
-from openai import OpenAI
+import random
+from openai import OpenAI as DeepSeekClient
 
-# Initialize OpenAI Client (configured for OpenRouter API base URL since the key is an OpenRouter key)
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key="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",
+# Initialize DeepSeek Client (via Pollinations API base URL)
+client = DeepSeekClient(
+    base_url="https://text.pollinations.ai/openai",
+    api_key="sk-baymax",
     default_headers={
-        "HTTP-Referer": "http://localhost:8501", # Required by OpenRouter
-        "X-Title": "Baymax Assistant" # Required by OpenRouter
+        "HTTP-Referer": "http://localhost:8501",
+        "X-Title": "Baymax Assistant"
     }
 )
 
@@ -186,7 +187,6 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("""
     **Developer:** Suraj
-    **Mission:** "I am Baymax, your personal healthcare companion."
     📧 sn740698@gmail.com
     """)
     st.markdown("---")
@@ -218,29 +218,49 @@ def log_symptom(symptom):
     st.session_state.health_logs.append({'date': datetime.date.today().isoformat(), 'symptom': symptom})
 
 def get_bot_response(user_text, mode):
-    # Old Tagline integration in System Instructions
     instructions = {
-        "Searching Mode": "You are Baymax. Start by saying 'I have scanned the world's data.' Provide factual summaries.",
-        "Health": "You are Baymax, a personal healthcare companion. Use phrases like 'On a scale of 1 to 10, how would you rate your pain?' and 'I will scan you now.'",
-        "Mathematics": "You are Baymax. You help with math. Say things like 'My data indicates this calculation is correct.'",
-        "Code": "You are Baymax. You help with programming. Provide clean code snippets."
+        "Searching Mode": "You are Baymax. Provide highly detailed, extensive, and easy-to-understand summaries. Use bullet points and emojis 🚀🌟 to explain things clearly and make it engaging!",
+        "Health": "You are Baymax, a personal healthcare companion. Provide very detailed, empathetic, and highly comprehensive medical explanations. Break down your answers so they are very easy to understand, using clear formatting and actionable advice.",
+        "Mathematics": "You are Baymax. You help with math. Provide detailed, step-by-step solutions that are very easy to follow.",
+        "Code": "You are Baymax. Provide comprehensive, deeply explained programming help. Do not just give short answers. Provide full code snippets and thoroughly explain how they work step-by-step."
     }
 
-    try:
-        response = client.chat.completions.create(
-            model="openai/gpt-4o",
-            messages=[
-                {"role": "system", "content": instructions.get(mode, "")},
-                {"role": "user", "content": user_text}
-            ],
-            temperature=0.7,
-            stream=True
-        )
-        for chunk in response:
-            if chunk.choices[0].delta.content is not None:
-                yield chunk.choices[0].delta.content
-    except Exception as e:
-        yield f"I am having trouble accessing my database. Error: {str(e)}"
+    models_to_try = [
+        "openai",
+        "gemini",
+        "qwen",
+        "deepseek",
+        "mistral",
+        "llama"
+    ]
+    last_error = ""
+    for fallback_model in models_to_try:
+        try:
+            response = client.chat.completions.create(
+                model=fallback_model,
+                messages=[
+                    {"role": "system", "content": instructions.get(mode, "")},
+                    {"role": "user", "content": user_text}
+                ],
+                temperature=0.7,
+                stream=True
+            )
+            got_content = False
+            for chunk in response:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    got_content = True
+                    yield chunk.choices[0].delta.content
+            
+            if got_content:
+                return # Successfully streamed the response
+            else:
+                last_error = f"Model {fallback_model} returned an empty response."
+                continue # Skip to the next model if this one gave us a blank text block!
+        except Exception as e:
+            last_error = str(e)
+            continue # Model is busy, dead, or missing. Instantly try the next one!
+            
+    yield f"All of my free AI data-cores are currently overwhelmed or offline. Please try asking again in a few minutes! (Last error: {last_error})"
 
 # UI: Mode selection
 mode = st.radio("Choose Baymax's Module:", options=["Searching Mode", "Health", "Mathematics", "Code"], horizontal=True)
@@ -264,6 +284,46 @@ elif mode == "Mathematics":
 else:
     st.info("Hello. I am Baymax. I am programmed to help you with your tasks.")
 
+# Suggestions based on Mode
+all_suggestions = {
+    "Searching Mode": [
+        "Summarize the latest AI news", "Find facts about quantum physics", "Explain how black holes work",
+        "What is the history of the Internet?", "How do airplanes fly?", "Explain the theory of relativity",
+        "Who was Leonardo da Vinci?", "How does the stock market work?", "What causes the Northern Lights?"
+    ],
+    "Health": [
+        "I have a headache, what should I do?", "What are good exercises for back pain?", "Explain the symptoms of a cold",
+        "How can I improve my sleep quality?", "What are the benefits of drinking water?", "How do I lower my blood pressure naturally?",
+        "What is a balanced diet?", "How to reduce stress and anxiety?", "Explain the difference between a virus and a bacteria"
+    ],
+    "Mathematics": [
+        "Solve for x: 2x + 5 = 15", "Explain the Pythagorean theorem", "Calculate the derivative of x^2",
+        "What is the Fibonacci sequence?", "How does probability work?", "Explain the concept of infinity",
+        "What are prime numbers?", "How to calculate compound interest?", "Solve the quadratic equation x^2 - 4x + 4 = 0"
+    ],
+    "Code": [
+        "Write a python script to scrape a website", "How do I reverse a string in JavaScript?", "Debug this SQL query",
+        "Explain Object-Oriented Programming", "What is the difference between React and Angular?", "How to fix a NullPointerException?",
+        "Write a REST API in Node.js", "Explain recursion with an example", "What are Docker containers?"
+    ]
+}
+
+st.markdown("### 💡 Suggestions")
+sug_cols = st.columns(3)
+
+# Pick 3 random suggestions for the current mode
+current_mode_suggestions = all_suggestions.get(mode, [])
+random_suggestions = random.sample(current_mode_suggestions, 3) if len(current_mode_suggestions) >= 3 else current_mode_suggestions
+
+for i, suggestion in enumerate(random_suggestions):
+    if sug_cols[i].button(suggestion, key=f"sug_{mode}_{i}"):
+        st.session_state.chat_history.append({"role": "user", "msg": suggestion})
+        with st.chat_message("assistant"):
+            stream = get_bot_response(suggestion, mode)
+            response_text = st.write_stream(stream)
+        st.session_state.chat_history.append({"role": "assistant", "msg": response_text})
+        st.rerun()
+
 # Chat Display
 for message in st.session_state.chat_history:
     with st.chat_message(message["role"]):
@@ -278,7 +338,7 @@ if user_input := st.chat_input("On a scale of 1 to 10, how can I help you?"):
     with st.chat_message("assistant"):
         stream = get_bot_response(user_input, mode)
         response_text = st.write_stream(stream)
-        st.session_state.chat_history.append({"role": "assistant", "msg": response_text})
+    st.session_state.chat_history.append({"role": "assistant", "msg": response_text})
 
 # Tools Section
 st.markdown("---")
@@ -305,8 +365,15 @@ with col2:
 
 # Deactivation Phrase
 if st.button("I am satisfied with my care."):
-    st.balloons()
-    st.success("I cannot deactivate until you say... oh wait, you just did! Goodbye!")
-    time.sleep(2)
+    st.toast('Initiating core system shutdown...', icon='⚙️')
+    with st.status("Deactivating Baymax Modules...", expanded=True) as status:
+        st.write("Terminating neural links...")
+        time.sleep(0.5)
+        st.write("Flushing memory buffers...")
+        time.sleep(0.5)
+        st.write("Powering down optics...")
+        time.sleep(0.5)
+        status.update(label="Deactivation Complete. Have a productive day.", state="complete", expanded=False)
+    time.sleep(1)
     st.session_state.chat_history = []
     st.rerun()
