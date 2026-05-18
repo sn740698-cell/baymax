@@ -8,6 +8,7 @@ from openai import OpenAI as DeepSeekClient
 client = DeepSeekClient(
     base_url="https://text.pollinations.ai/openai",
     api_key="sk-baymax",
+    timeout=15.0,
     default_headers={
         "HTTP-Referer": "http://localhost:8501",
         "X-Title": "Baymax Assistant"
