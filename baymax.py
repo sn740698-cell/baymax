@@ -1,10 +1,12 @@
 import streamlit as st
 import datetime
-from google import genai
-from google.genai import types
+from openai import OpenAI
 
-# Initialize Gemini Client 
-client = genai.Client(api_key="AIzaSyDIzo83zqbrBBUpo5HbGEWiyqfPfKWarY8")
+# Initialize OpenAI Client (configured for OpenRouter API base URL since the key is an OpenRouter key)
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key="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"
+)
 
 # Page config
 st.set_page_config(page_title="🤖 Baymax Assistant", layout="centered")
@@ -19,7 +21,7 @@ with st.sidebar:
     📧 sn740698@gmail.com
     """)
     st.markdown("---")
-    
+
     if st.session_state.get("chat_history"):
         chat_text = "\n".join([f"{m['role'].upper()}: {m['msg']}" for m in st.session_state.chat_history])
         st.download_button("📥 Download Chat Log", chat_text, file_name="baymax_chat.txt")
@@ -47,17 +49,17 @@ def get_bot_response(user_text, mode):
         "Mathematics": "You are Baymax. You help with math. Say things like 'My data indicates this calculation is correct.'",
         "Code": "You are Baymax. You help with programming. Provide clean code snippets."
     }
-    
+
     try:
-        response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            contents=user_text,
-            config=types.GenerateContentConfig(
-                system_instruction=instructions.get(mode, ""),
-                temperature=0.7,
-            )
+        response = client.chat.completions.create(
+            model="openai/gpt-4o",
+            messages=[
+                {"role": "system", "content": instructions.get(mode, "")},
+                {"role": "user", "content": user_text}
+            ],
+            temperature=0.7,
         )
-        return response.text
+        return response.choices[0].message.content
     except Exception as e:
         return f"I am having trouble accessing my database. Error: {str(e)}"
 
@@ -81,7 +83,7 @@ if user_input := st.chat_input("On a scale of 1 to 10, how can I help you?"):
     st.session_state.chat_history.append({"role": "user", "msg": user_input})
     with st.chat_message("user"):
         st.markdown(user_input)
-    
+
     with st.chat_message("assistant"):
         response = get_bot_response(user_input, mode)
         st.markdown(response)
@@ -115,5 +117,3 @@ if st.button("I am satisfied with my care."):
     st.success("I cannot deactivate until you say... oh wait, you just did! Goodbye!")
     st.session_state.chat_history = []
     st.rerun()
-
-
