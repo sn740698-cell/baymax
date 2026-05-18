@@ -4,15 +4,15 @@ import time
 import random
 from openai import OpenAI as DeepSeekClient
 
-# Initialize DeepSeek Client (via Pollinations API base URL)
+# Retrieve API key and Base URL from st.secrets if available, else use defaults
+api_key = st.secrets.get("POLLINATIONS_API_KEY", "sk-baymax")
+base_url = st.secrets.get("POLLINATIONS_BASE_URL", "https://gen.pollinations.ai/v1")
+
+# Initialize OpenAI Client (via Pollinations API)
 client = DeepSeekClient(
-    base_url="https://text.pollinations.ai/openai",
-    api_key="sk-baymax",
-    timeout=10.0,
-    default_headers={
-        "HTTP-Referer": "http://localhost:8501",
-        "X-Title": "Baymax Assistant"
-    }
+    base_url=base_url,
+    api_key=api_key,
+    timeout=15.0
 )
 
 # Page config
@@ -229,9 +229,10 @@ def get_bot_response(user_text, mode):
 
     models_to_try = [
         "openai",
+        "gemini",
         "mistral",
         "llama",
-        "gemini"
+        "deepseek"
     ]
     last_error = ""
     for fallback_model in models_to_try:
