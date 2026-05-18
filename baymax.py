@@ -2,6 +2,8 @@ import streamlit as st
 import datetime
 import time
 import random
+import json
+import requests
 from openai import OpenAI as DeepSeekClient
 
 # Retrieve API key and Base URL from st.secrets if available, else use defaults
@@ -236,35 +238,55 @@ def get_bot_response(user_text, mode):
     ]
     last_error = ""
     for fallback_model in models_to_try:
-        for attempt in range(3):
+        for attempt in range(2):
             try:
-                response = client.chat.completions.create(
-                    model=fallback_model,
-                    messages=[
-                        {"role": "system", "content": instructions.get(mode, "")},
-                        {"role": "user", "content": user_text}
-                    ],
-                    temperature=0.7,
-                    stream=True
+                response = requests.post(
+                    "https://text.pollinations.ai/",
+                    json={
+                        "messages": [
+                            {"role": "system", "content": instructions.get(mode, "")},
+                            {"role": "user", "content": user_text}
+                        ],
+                        "model": fallback_model,
+                        "stream": True
+                    },
+                    stream=True,
+                    timeout=10.0
                 )
+                
+                if response.status_code != 200:
+                    last_error = f"HTTP {response.status_code}: {response.text[:100]}"
+                    break
+                
                 got_content = False
-                for chunk in response:
-                    if chunk.choices and chunk.choices[0].delta.content:
-                        got_content = True
-                        yield chunk.choices[0].delta.content
+                for line in response.iter_lines():
+                    if line:
+                        decoded_line = line.decode('utf-8').strip()
+                        if decoded_line.startswith("data: "):
+                            data_str = decoded_line[6:]
+                            if data_str == "[DONE]":
+                                break
+                            try:
+                                data_json = json.loads(data_str)
+                                content = data_json["choices"][0]["delta"].get("content", "")
+                                if content:
+                                    got_content = True
+                                    yield content
+                            except Exception:
+                                continue
                 
                 if got_content:
                     return # Successfully streamed the response
                 else:
                     last_error = f"Model {fallback_model} returned an empty response."
-                    break # Break retry loop, try next model
+                    break # Break attempt loop, try next model
             except Exception as e:
                 last_error = str(e)
                 if "429" in last_error or "Queue full" in last_error or "busy" in last_error.lower() or "503" in last_error:
-                    time.sleep(2.5) # The free API queue is full, give it a moment to clear before next retry!
+                    time.sleep(1.5)
                     continue
                 else:
-                    break # Break attempt loop for this model on other errors
+                    break
             
     # If we get here, all models failed. Let's make the error look clean instead of dumping JSON!
     if "429" in last_error or "Queue full" in last_error or "busy" in last_error.lower() or "503" in last_error:
