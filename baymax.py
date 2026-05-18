@@ -2,13 +2,14 @@ import streamlit as st
 import datetime
 import time
 import random
+import psutil
 from openai import OpenAI as DeepSeekClient
 
 # Initialize DeepSeek Client (via Pollinations API base URL)
 client = DeepSeekClient(
     base_url="https://text.pollinations.ai/openai",
     api_key="sk-baymax",
-    timeout=15.0,
+    timeout=10.0,
     default_headers={
         "HTTP-Referer": "http://localhost:8501",
         "X-Title": "Baymax Assistant"
@@ -194,7 +195,25 @@ with st.sidebar:
     
     st.markdown("### System Status")
     cols = st.columns(2)
-    cols[0].metric(label="Battery", value="100%", delta="-0.01%")
+    
+    try:
+        battery = psutil.sensors_battery()
+        if battery:
+            batt_percent = int(battery.percent)
+            batt_plugged = battery.power_plugged
+            batt_str = f"{batt_percent}%" + (" ⚡" if batt_plugged else "")
+            batt_delta = "Charging" if batt_plugged else "Discharging"
+            delta_col = "normal" if batt_plugged else "off"
+        else:
+            batt_str = "Unknown"
+            batt_delta = "N/A"
+            delta_col = "off"
+    except Exception:
+        batt_str = "Error"
+        batt_delta = "N/A"
+        delta_col = "off"
+
+    cols[0].metric(label="Battery", value=batt_str, delta=batt_delta, delta_color=delta_col)
     cols[1].metric(label="Empathy Chip", value="Active", delta="Optimal", delta_color="normal")
     st.progress(100, text="Database Connection")
     st.markdown("---")
@@ -228,11 +247,7 @@ def get_bot_response(user_text, mode):
 
     models_to_try = [
         "openai",
-        "gemini",
-        "qwen",
-        "deepseek",
-        "mistral",
-        "llama"
+        "gemini"
     ]
     last_error = ""
     for fallback_model in models_to_try:
@@ -259,9 +274,15 @@ def get_bot_response(user_text, mode):
                 continue # Skip to the next model if this one gave us a blank text block!
         except Exception as e:
             last_error = str(e)
-            continue # Model is busy, dead, or missing. Instantly try the next one!
+            if "429" in last_error or "Queue full" in last_error:
+                time.sleep(2.5) # The free API queue is full, give it a moment to clear before next retry!
+            continue # Model is busy, dead, or missing. Try the next one!
             
-    yield f"All of my free AI data-cores are currently overwhelmed or offline. Please try asking again in a few minutes! (Last error: {last_error})"
+    # If we get here, all models failed. Let's make the error look clean instead of dumping JSON!
+    if "429" in last_error or "Queue full" in last_error:
+        yield "My servers are currently experiencing extreme traffic! 🚦 Please wait a few moments and ask me again. I appreciate your patience!"
+    else:
+        yield f"All of my free AI data-cores are currently overwhelmed or offline. Please try asking again in a few minutes! (Last internal error: {last_error[:100]}...)"
 
 # UI: Mode selection
 mode = st.radio("Choose Baymax's Module:", options=["Searching Mode", "Health", "Mathematics", "Code"], horizontal=True)
