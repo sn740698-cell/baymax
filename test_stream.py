@@ -1,8 +1,6 @@
 import requests
-import urllib.parse
 import time
 import json
-import random
 
 def get_bot_response(user_text, mode):
     instructions = {
@@ -12,15 +10,25 @@ def get_bot_response(user_text, mode):
     models_to_try = ["openai", "gemini"]
     last_error = ""
     
+    headers = {
+        "Authorization": "Bearer sk_PqexpJokRElrFvPFxt5uy5vx8DWWS0ni",
+        "Content-Type": "application/json"
+    }
+    
     for fallback_model in models_to_try:
         for attempt in range(2):
             try:
-                encoded_prompt = urllib.parse.quote(user_text)
-                encoded_system = urllib.parse.quote(instructions.get(mode, ""))
-                url = f"https://text.pollinations.ai/{encoded_prompt}?model={fallback_model}&system={encoded_system}&stream=true"
+                url = "https://gen.pollinations.ai/v1/chat/completions"
+                payload = {
+                    "messages": [
+                        {"role": "system", "content": instructions.get(mode, "")},
+                        {"role": "user", "content": user_text}
+                    ],
+                    "model": fallback_model,
+                    "stream": True
+                }
                 
-                # Use "with" block to ensure connection is strictly closed!
-                with requests.get(url, stream=True, timeout=5.0) as response:
+                with requests.post(url, json=payload, headers=headers, stream=True, timeout=10.0) as response:
                     if response.status_code != 200:
                         last_error = f"HTTP {response.status_code}: {response.text[:100]}"
                         if response.status_code in [429, 503] or "queue full" in response.text.lower():
@@ -59,7 +67,7 @@ def get_bot_response(user_text, mode):
     yield f"Error: All models failed. Last error: {last_error}"
 
 # Run a test
-print("Starting stream test with proper connection closing...")
+print("Starting stream test with gen.pollinations.ai POST and real API key...")
 for token in get_bot_response("tell me a 2-word joke", "Health"):
     print(token, end="", flush=True)
 print()
