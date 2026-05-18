@@ -1,2 +1,2 @@
 streamlit
-openai  # Used to connect to the Qwen API via OpenRouter
+openai  # Used to connect to the deepseek API via OpenRouter
