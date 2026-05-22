@@ -406,7 +406,18 @@ def get_bot_response(user_text, mode):
         "Mathematics": "You are Baymax. You help with math. Provide detailed, step-by-step solutions that are very easy to follow.",
         "Code": "You are Baymax. Provide comprehensive, deeply explained programming help. Do not just give short answers. Provide full code snippets and thoroughly explain how they work step-by-step."
     }
+    
+    if mode == "Searching Mode":
+        try:
+            from duckduckgo_search import DDGS
+            results = DDGS().text(user_text, max_results=5)
+            if results:
+                user_text += "\n\n[Real-time web search results for context:]\n" + "\n".join([f"- {r.get('title', 'No Title')}: {r.get('body', 'No Body')}" for r in results])
+        except Exception:
+            pass
+            
     openrouter_engines = [
+        {"model": "deepseek/deepseek-chat", "key": "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"},
         {"model": "openai/gpt-4o-mini", "key": "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"},
         {"model": "openai/gpt-4o-mini", "key": "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"},
         {"model": "qwen/qwen-2.5-72b-instruct", "key": "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"},
